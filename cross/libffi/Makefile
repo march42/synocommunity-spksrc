@@ -12,6 +12,7 @@ COMMENT  = A Portable Foreign Function Interface Library
 LICENSE  = libffi BSD-like
 
 GNU_CONFIGURE = 1
+CONFIGURE_ARGS = --disable-builddir
 PRE_CONFIGURE_TARGET = libffi_pre_configure
 
 include ../../mk/spksrc.cross-cc.mk
