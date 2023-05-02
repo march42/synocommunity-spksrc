@@ -1,15 +1,14 @@
 #!/bin/sh
 
 # Package
-PACKAGE="plexivity"
-DNAME="plexivity"
+PACKAGE="saltpad"
+DNAME="SaltPad"
 
 # Others
 INSTALL_DIR="/usr/local/${PACKAGE}"
 SSS="/var/packages/${PACKAGE}/scripts/start-stop-status"
 PYTHON_DIR="/usr/local/python"
-GIT_DIR="/usr/local/git"
-PATH="${INSTALL_DIR}/bin:${INSTALL_DIR}/env/bin:${PYTHON_DIR}/bin:${GIT_DIR}/bin:${PATH}"
+PATH="${INSTALL_DIR}/bin:${INSTALL_DIR}/env/bin:${PYTHON_DIR}/bin:${PATH}"
 VIRTUALENV="${PYTHON_DIR}/bin/virtualenv"
 TMP_DIR="${SYNOPKG_PKGDEST}/../../@tmp"
 SERVICETOOL="/usr/syno/bin/servicetool"
@@ -17,24 +16,24 @@ BUILDNUMBER="$(/bin/get_key_value /etc.defaults/VERSION buildnumber)"
 FWPORTS="/var/packages/${PACKAGE}/scripts/${PACKAGE}.sc"
 
 DSM6_UPGRADE="${INSTALL_DIR}/var/.dsm6_upgrade"
-SC_USER="sc-plexivity"
-LEGACY_USER="plexivity"
+SC_USER="sc-saltpad"
+LEGACY_USER="saltpad"
 LEGACY_GROUP="nobody"
 USER="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n ${SC_USER} || echo -n ${LEGACY_USER})"
 
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
 
     # Create a Python virtualenv
-    ${VIRTUALENV} ${INSTALL_DIR}/env > /dev/null
+    ${VIRTUALENV} --system-site-packages ${INSTALL_DIR}/env > /dev/null
 
     # Install the wheels
     ${INSTALL_DIR}/env/bin/pip install --no-deps --no-index -U --force-reinstall -f ${INSTALL_DIR}/share/wheelhouse ${INSTALL_DIR}/share/wheelhouse/*.whl > /dev/null 2>&1
@@ -44,8 +43,18 @@ postinst ()
         adduser -h ${INSTALL_DIR}/var -g "${DNAME} User" -G ${LEGACY_GROUP} -s /bin/sh -S -D ${LEGACY_USER}
     fi
 
+    # Create configuration file
+    if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
+        echo API_URL = \'http://localhost:8282\' > ${INSTALL_DIR}/var/settings.py
+        echo SECRET_KEY = \'$(python -c "import os, hashlib; print hashlib.md5(os.urandom(24)).hexdigest()")\' >> ${INSTALL_DIR}/var/settings.py
+        echo EAUTH = \'synology\' >> ${INSTALL_DIR}/var/settings.py
+    fi
+    
+    # Link configuration file
+    ln -s ${INSTALL_DIR}/var/settings.py ${INSTALL_DIR}/share/saltpad/saltpad/local_settings.py
+
     # Correct the files ownership
-    chown -R ${USER}:root ${SYNOPKG_PKGDEST}
+    chown -R ${USER} ${SYNOPKG_PKGDEST}
 
     # Add firewall config
     ${SERVICETOOL} --install-configure-file --package ${FWPORTS} >> /dev/null
@@ -53,7 +62,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -70,20 +79,15 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
 
-    # Remove firewall config
-    if [ "${SYNOPKG_PKG_STATUS}" == "UNINSTALL" ]; then
-        ${SERVICETOOL} --remove-configure-file --package ${PACKAGE}.sc >> /dev/null
-    fi
-
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -103,12 +107,15 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
     rm -fr ${INSTALL_DIR}/var
     mv ${TMP_DIR}/${PACKAGE}/var ${INSTALL_DIR}/
     rm -fr ${TMP_DIR}/${PACKAGE}
+
+    # Ensure file ownership is correct after upgrade
+    chown -R ${USER} ${SYNOPKG_PKGDEST}
 
     exit 0
 }

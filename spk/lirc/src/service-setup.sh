@@ -43,12 +43,12 @@ lirc_install_drivers ()
     chmod -R 777 /var/run/lirc
 }
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -66,7 +66,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -83,7 +83,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -91,7 +91,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -109,7 +109,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
     cd ${INSTALL_DIR} && find etc -type f -print | grep -v -e "^etc/lirc/lircd.conf$" -e "^etc/lirc/lircrc$" > ${TMP_DIR}/${PACKAGE}/exclude

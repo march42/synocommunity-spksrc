@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Package
-PACKAGE="nzbmegasearch"
-DNAME="NZBmegasearcH"
+PACKAGE="maraschino"
+DNAME="Maraschino"
 
 # Others
 INSTALL_DIR="/usr/local/${PACKAGE}"
@@ -13,20 +13,21 @@ VIRTUALENV="${PYTHON_DIR}/bin/virtualenv"
 TMP_DIR="${SYNOPKG_PKGDEST}/../../@tmp"
 SERVICETOOL="/usr/syno/bin/servicetool"
 BUILDNUMBER="$(/bin/get_key_value /etc.defaults/VERSION buildnumber)"
+FWPORTS="/var/packages/${PACKAGE}/scripts/${PACKAGE}.sc"
 
 DSM6_UPGRADE="${INSTALL_DIR}/var/.dsm6_upgrade"
-SC_USER="sc-nzbmegasearch"
-LEGACY_USER="nzbmegasearch"
-LEGACY_GROUP="users"
+SC_USER="sc-maraschino"
+LEGACY_USER="maraschino"
+LEGACY_GROUP="nobody"
 USER="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n ${SC_USER} || echo -n ${LEGACY_USER})"
 
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -48,7 +49,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -65,7 +66,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -73,7 +74,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -88,15 +89,16 @@ preupgrade ()
     # Save some stuff
     rm -fr ${TMP_DIR}/${PACKAGE}
     mkdir -p ${TMP_DIR}/${PACKAGE}
-    mv ${INSTALL_DIR}/share/NZBmegasearch/custom_params.ini ${TMP_DIR}/${PACKAGE}/
+    mv ${INSTALL_DIR}/var ${TMP_DIR}/${PACKAGE}/
 
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
-    mv ${TMP_DIR}/${PACKAGE}/custom_params.ini ${INSTALL_DIR}/share/NZBmegasearch/
+    rm -fr ${INSTALL_DIR}/var
+    mv ${TMP_DIR}/${PACKAGE}/var ${INSTALL_DIR}/
     rm -fr ${TMP_DIR}/${PACKAGE}
 
     exit 0

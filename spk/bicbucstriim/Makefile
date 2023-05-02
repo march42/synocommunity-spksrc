@@ -16,7 +16,7 @@ CHANGELOG = Update to 1.3.6
 HOMEPAGE   = https://projekte.textmulch.de/bicbucstriim
 LICENSE    = MIT
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 INSTALL_DEP_SERVICES = apache-web

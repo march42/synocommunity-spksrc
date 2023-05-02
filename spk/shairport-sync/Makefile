@@ -14,7 +14,7 @@ CHANGELOG = "Initial SynoCommunity Release"
 HOMEPAGE = https://github.com/mikebrady/shairport-sync
 LICENSE  =
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 FWPORTS          = src/${SPK_NAME}.sc

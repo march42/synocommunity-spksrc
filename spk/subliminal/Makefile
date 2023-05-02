@@ -20,7 +20,7 @@ LICENSE    = LGPL
 # Help URL is not reachable anymore!
 HELPURL    = https://synocommunity.com/help/subliminal
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 CONF_DIR         = src/conf/
 WIZARDS_DIR      = src/wizard/

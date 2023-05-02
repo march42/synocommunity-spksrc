@@ -17,7 +17,7 @@ BETA = 1
 HOMEPAGE   = https://jappix.org/
 LICENSE    = AGPL
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 INSTALL_DEP_SERVICES = apache-web

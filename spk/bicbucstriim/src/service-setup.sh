@@ -15,12 +15,12 @@ BUILDNUMBER="$(/bin/get_key_value /etc.defaults/VERSION buildnumber)"
 USER="$([ "${BUILDNUMBER}" -ge "4418" ] && echo -n http || echo -n nobody)"
 
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -42,12 +42,12 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -62,7 +62,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Save data
     rm -fr ${TMP_DIR}/${PACKAGE}
@@ -73,7 +73,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore data
     mv ${TMP_DIR}/${PACKAGE}/data/authors ${WEB_DIR}/${SHORTNAME}/data/

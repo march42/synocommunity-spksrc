@@ -25,7 +25,7 @@ LEGACY_GROUP="nobody"
 USER="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n ${SC_USER} || echo -n ${LEGACY_USER})"
 
 
-preinst ()
+service_preinst ()
 {
     # Check MySQL database
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
@@ -48,7 +48,7 @@ preinst ()
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -88,7 +88,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
 
     # Check database
@@ -120,7 +120,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -137,7 +137,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -157,7 +157,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
     rm -fr ${INSTALL_DIR}/var

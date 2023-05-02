@@ -1,9 +1,8 @@
 #!/bin/sh
 
 # Package
-PACKAGE="fengoffice"
-DNAME="Feng Office"
-VERSION="2.5.1.2"
+PACKAGE="selfoss"
+DNAME="Selfoss"
 
 # Others
 INSTALL_DIR="/usr/local/${PACKAGE}"
@@ -15,12 +14,13 @@ BUILDNUMBER="$(/bin/get_key_value /etc.defaults/VERSION buildnumber)"
 USER="$([ "${BUILDNUMBER}" -ge "4418" ] && echo -n http || echo -n nobody)"
 MYSQL="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n /bin/mysql || echo -n /usr/syno/mysql/bin/mysql)"
 MYSQLDUMP="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n /bin/mysqldump || echo -n /usr/syno/mysql/bin/mysqldump)"
-MYSQL_USER="fengoffice"
-MYSQL_DATABASE="fengoffice"
+MYSQL_USER="selfoss"
+MYSQL_DATABASE="selfoss"
 
 
-preinst ()
+service_preinst ()
 {
+    # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
         if ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
             echo "Incorrect MySQL root password"
@@ -39,10 +39,13 @@ preinst ()
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
+
+    # Create conf dir for 4.3 and add dependencies
+    mkdir -p /var/packages/${PACKAGE}/conf && echo -e "[MariaDB]\ndsm_min_ver=5.0-4300" > /var/packages/${PACKAGE}/conf/PKG_DEPS
 
     # Install busybox stuff
     ${INSTALL_DIR}/bin/busybox --install ${INSTALL_DIR}/bin
@@ -50,22 +53,20 @@ postinst ()
     # Install the web interface
     cp -pR ${INSTALL_DIR}/share/${PACKAGE} ${WEB_DIR}
 
-    # Setup database and run installer
+    # Setup database and configuration file
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
-        ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "CREATE DATABASE ${MYSQL_DATABASE}; GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${wizard_mysql_password_fengoffice:=fengoffice}';"
-        cd ${WEB_DIR}/${PACKAGE}/public/install/ && QUERY_STRING="script_installer_storage[database_type]=mysql&script_installer_storage[database_host]=localhost&script_installer_storage[database_user]=${MYSQL_USER}&script_installer_storage[database_pass]=${wizard_mysql_password_fengoffice:=fengoffice}&script_installer_storage[database_name]=${MYSQL_DATABASE}&script_installer_storage[database_prefix]=fo_&script_installer_storage[database_engine]=InnoDB&script_installer_storage[absolute_url]=http://${wizard_domain_name:=`hostname`}/${PACKAGE}&script_installer_storage[plugins][]=core_dimensions&script_installer_storage[plugins][]=workspaces&script_installer_storage[plugins][]=mail&submited=submited" php install_helper.php > /dev/null
+        ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "CREATE DATABASE ${MYSQL_DATABASE}; GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${wizard_mysql_password_selfoss}';"
+        echo -e "[globals]\ndb_type=mysql\ndb_host=localhost\ndb_port=3306\ndb_username=${MYSQL_USER}\ndb_password=${wizard_mysql_password_selfoss}\nsalt=$(openssl rand -hex 8)" > ${WEB_DIR}/${PACKAGE}/config.ini
     fi
 
     # Fix permissions
-    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/config
-    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/cache
-    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/upload
-    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/tmp
+    chown ${USER} ${WEB_DIR}/${PACKAGE}/public
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/data
 
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "UNINSTALL" ] && ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
@@ -87,7 +88,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -107,38 +108,29 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
 
-    # Save configuration and files
+    # Save the configuration file
     rm -fr ${TMP_DIR}/${PACKAGE}
     mkdir -p ${TMP_DIR}/${PACKAGE}
-    mv ${WEB_DIR}/${PACKAGE}/config/config.php ${TMP_DIR}/${PACKAGE}/
-    mv ${WEB_DIR}/${PACKAGE}/config/installed_version.php ${TMP_DIR}/${PACKAGE}/
-    mkdir ${TMP_DIR}/${PACKAGE}/upload/
-    cp -r ${WEB_DIR}/${PACKAGE}/upload/*/ ${TMP_DIR}/${PACKAGE}/upload/
+    mv ${WEB_DIR}/${PACKAGE}/config.ini ${TMP_DIR}/${PACKAGE}/
+    mv ${WEB_DIR}/${PACKAGE}/data ${TMP_DIR}/${PACKAGE}/
 
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
-    # Detect old version
-    INSTALLED_VERSION=`sed -n "s|return '\(.*\)';|\1|p" ${TMP_DIR}/${PACKAGE}/installed_version.php | xargs`
-
-    # Restore configuration
-    mv ${TMP_DIR}/${PACKAGE}/config.php ${WEB_DIR}/${PACKAGE}/config/
-    cp -r ${TMP_DIR}/${PACKAGE}/upload/*/ ${WEB_DIR}/${PACKAGE}/upload/
+    # Restore the configuration file
+    mv ${TMP_DIR}/${PACKAGE}/config.ini ${WEB_DIR}/${PACKAGE}/
+    cp -r ${TMP_DIR}/${PACKAGE}/data ${WEB_DIR}/${PACKAGE}/
     rm -fr ${TMP_DIR}/${PACKAGE}
 
-    # Fix permissions
-    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/upload
-
-    # Run update scripts
-    php ${WEB_DIR}/${PACKAGE}/public/upgrade/console.php ${INSTALLED_VERSION} ${VERSION} > /dev/null
-    php ${WEB_DIR}/${PACKAGE}/public/install/plugin-console.php update_all > /dev/null
+    # Remove trailing whitespace from config
+    sed -ie "s/[ \t]*$//" ${WEB_DIR}/${PACKAGE}/config.ini
 
     exit 0
 }

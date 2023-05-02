@@ -14,7 +14,7 @@ CHANGELOG = "1. Update BoxBackup to 0.12.<br/>2. Update openssl to 1.1."
 HOMEPAGE = https://www.boxbackup.org/
 LICENSE  = BSD/GPL
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 INSTALL_PREFIX = /usr/local/$(SPK_NAME)

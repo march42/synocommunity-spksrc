@@ -13,12 +13,12 @@ CHROOT_PATH="/usr/local/bin:/usr/bin:/bin"
 VIRTUALENV="${PYTHON_DIR}/bin/virtualenv"
 TMP_DIR="${SYNOPKG_PKGDEST}/../../@tmp"
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -45,12 +45,12 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -58,7 +58,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Save some stuff
     rm -fr ${TMP_DIR}/${PACKAGE}
@@ -68,7 +68,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
     rm -fr ${INSTALL_DIR}/etc

@@ -15,7 +15,7 @@ DISPLAY_NAME = HTPC-Manager
 
 HOMEPAGE   = https://htpc.io
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 FWPORTS          = src/${SPK_NAME}.sc
 CONF_DIR         = src/conf/

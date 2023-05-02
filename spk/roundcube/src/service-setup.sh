@@ -17,7 +17,7 @@ MYSQL_USER="roundcube"
 MYSQL_DATABASE="roundcube"
 
 
-preinst ()
+service_preinst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
@@ -38,7 +38,7 @@ preinst ()
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -66,7 +66,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "UNINSTALL" ] && ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
@@ -85,7 +85,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -105,7 +105,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     rm -fr ${TMP_DIR}/${PACKAGE}
     mkdir -p ${TMP_DIR}/${PACKAGE}
@@ -140,7 +140,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore pre 1.0.0 configuration files, still 1.0.0 compatible
     mv ${TMP_DIR}/${PACKAGE}/db.inc.php ${WEB_DIR}/${PACKAGE}/config/db.inc.php

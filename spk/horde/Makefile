@@ -19,7 +19,7 @@ LICENSE    = LGPL
 WIZARDS_DIR = src/wizard/
 CONF_DIR = src/conf/
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 INSTALL_DEP_SERVICES = apache-web mysql

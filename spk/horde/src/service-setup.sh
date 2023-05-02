@@ -19,7 +19,7 @@ MYSQL_USER="horde"
 MYSQL_DATABASE="horde"
 
 
-preinst ()
+service_preinst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
@@ -40,7 +40,7 @@ preinst ()
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -104,7 +104,7 @@ postinst ()
     exit 0
 }
 
-postinst_bg ()
+service_postinst_bg ()
 {
     ${INSTALL_DIR}/bin/pear -c ${INSTALL_DIR}/etc/pear.conf install -a -B -f horde/$edition > $(INSTALL_DIR)/var/install.log 2>&1
 
@@ -132,7 +132,7 @@ postinst_bg ()
     rm -f ${WEB_DIR}/${PACKAGE}/index.html
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "UNINSTALL" ] && ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
@@ -154,7 +154,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -178,7 +178,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null 
@@ -209,7 +209,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore main Horde config
     mkdir -p ${WEB_DIR}/${PACKAGE}/config

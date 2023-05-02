@@ -16,7 +16,7 @@ CHANGELOG = "1. Add site config files"
 HOMEPAGE   = http://code.fivefilters.org/full-text-rss/
 LICENSE    = AGPLv3
 
-INSTALLER_SCRIPT = src/installer.sh
+SERVICE_SETUP    = src/service-setup.sh
 SSS_SCRIPT       = src/dsm-control.sh
 
 INSTALL_DEP_SERVICES = apache-web

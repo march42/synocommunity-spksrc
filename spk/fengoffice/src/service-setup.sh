@@ -1,27 +1,26 @@
 #!/bin/sh
 
 # Package
-PACKAGE="mantisbt"
-DNAME="MantisBT"
-PACKAGE_NAME="com.synocommunity.packages.${PACKAGE}"
+PACKAGE="fengoffice"
+DNAME="Feng Office"
+VERSION="2.5.1.2"
 
 # Others
 INSTALL_DIR="/usr/local/${PACKAGE}"
+SSS="/var/packages/${PACKAGE}/scripts/start-stop-status"
 WEB_DIR="/var/services/web"
 TMP_DIR="${SYNOPKG_PKGDEST}/../../@tmp"
 BUILDNUMBER="$(/bin/get_key_value /etc.defaults/VERSION buildnumber)"
 
 USER="$([ "${BUILDNUMBER}" -ge "4418" ] && echo -n http || echo -n nobody)"
-PHP="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n /usr/local/bin/php56 || echo -n /usr/bin/php)"
 MYSQL="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n /bin/mysql || echo -n /usr/syno/mysql/bin/mysql)"
 MYSQLDUMP="$([ "${BUILDNUMBER}" -ge "7321" ] && echo -n /bin/mysqldump || echo -n /usr/syno/mysql/bin/mysqldump)"
-MYSQL_USER="mantisbt"
-MYSQL_DATABASE="mantisbt"
+MYSQL_USER="fengoffice"
+MYSQL_DATABASE="fengoffice"
 
 
-preinst ()
+service_preinst ()
 {
-    # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
         if ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
             echo "Incorrect MySQL root password"
@@ -40,38 +39,33 @@ preinst ()
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
 
+    # Install busybox stuff
+    ${INSTALL_DIR}/bin/busybox --install ${INSTALL_DIR}/bin
+
     # Install the web interface
     cp -pR ${INSTALL_DIR}/share/${PACKAGE} ${WEB_DIR}
 
-    # Configure open_basedir
-    if [ "${USER}" == "nobody" ]; then
-        echo -e "<Directory \"${WEB_DIR}/${PACKAGE}\">\nphp_admin_value open_basedir none\n</Directory>" > /usr/syno/etc/sites-enabled-user/${PACKAGE}.conf
-    else
-        echo -e "extension = fileinfo.so\n[PATH=${WEB_DIR}/${PACKAGE}]\nopen_basedir = Null" > /etc/php/conf.d/${PACKAGE_NAME}.ini
-    fi
-
-    # Setup database and configuration file
+    # Setup database and run installer
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
-        ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "CREATE DATABASE ${MYSQL_DATABASE}; GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${wizard_mysql_password_mantisbt:=mantisbt}';"
-        sed -i -e "s/@password@/${wizard_mysql_password_mantisbt:=mantisbt}/g" ${WEB_DIR}/${PACKAGE}/config_inc.php
+        ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "CREATE DATABASE ${MYSQL_DATABASE}; GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${wizard_mysql_password_fengoffice:=fengoffice}';"
+        cd ${WEB_DIR}/${PACKAGE}/public/install/ && QUERY_STRING="script_installer_storage[database_type]=mysql&script_installer_storage[database_host]=localhost&script_installer_storage[database_user]=${MYSQL_USER}&script_installer_storage[database_pass]=${wizard_mysql_password_fengoffice:=fengoffice}&script_installer_storage[database_name]=${MYSQL_DATABASE}&script_installer_storage[database_prefix]=fo_&script_installer_storage[database_engine]=InnoDB&script_installer_storage[absolute_url]=http://${wizard_domain_name:=`hostname`}/${PACKAGE}&script_installer_storage[plugins][]=core_dimensions&script_installer_storage[plugins][]=workspaces&script_installer_storage[plugins][]=mail&submited=submited" php install_helper.php > /dev/null
     fi
 
-    # Install/upgrade database
-    sed -i -e "s/gpc_get_int( 'install', 0 );/gpc_get_int( 'install', 2 );/g" ${WEB_DIR}/${PACKAGE}/admin/install.php
-    ${PHP} ${WEB_DIR}/${PACKAGE}/admin/install.php > /dev/null
-
-    # Remove admin directory
-    rm -fr ${WEB_DIR}/${PACKAGE}/admin/
+    # Fix permissions
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/config
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/cache
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/upload
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/tmp
 
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" == "UNINSTALL" ] && ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
@@ -87,10 +81,13 @@ preuninst ()
         fi
     fi
 
+    # Stop the package
+    ${SSS} stop > /dev/null
+
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -104,46 +101,44 @@ postuninst ()
         ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "DROP DATABASE ${MYSQL_DATABASE}; DROP USER '${MYSQL_USER}'@'localhost';"
     fi
 
-    # Remove open_basedir configuration
-    rm -f /usr/syno/etc/sites-enabled-user/${PACKAGE}.conf
-    rm -f /etc/php/conf.d/${PACKAGE_NAME}.ini
-
     # Remove the web interface
     rm -fr ${WEB_DIR}/${PACKAGE}
 
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
-    # Backup files
+    # Stop the package
+    ${SSS} stop > /dev/null
+
+    # Save configuration and files
     rm -fr ${TMP_DIR}/${PACKAGE}
     mkdir -p ${TMP_DIR}/${PACKAGE}
-
-    # Save the configuration file
-    mv ${WEB_DIR}/${PACKAGE}/config_inc.php ${TMP_DIR}/${PACKAGE}/
-
-    # Save custom files
-    for file in ${WEB_DIR}/${PACKAGE}/custom*
-    do
-        mv $file ${TMP_DIR}/${PACKAGE}/
-    done
+    mv ${WEB_DIR}/${PACKAGE}/config/config.php ${TMP_DIR}/${PACKAGE}/
+    mv ${WEB_DIR}/${PACKAGE}/config/installed_version.php ${TMP_DIR}/${PACKAGE}/
+    mkdir ${TMP_DIR}/${PACKAGE}/upload/
+    cp -r ${WEB_DIR}/${PACKAGE}/upload/*/ ${TMP_DIR}/${PACKAGE}/upload/
 
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
-    # Restore the configuration file
-    mv ${TMP_DIR}/${PACKAGE}/config_inc.php ${WEB_DIR}/${PACKAGE}/
+    # Detect old version
+    INSTALLED_VERSION=`sed -n "s|return '\(.*\)';|\1|p" ${TMP_DIR}/${PACKAGE}/installed_version.php | xargs`
 
-    # Restore custom files
-    for file in ${TMP_DIR}/${PACKAGE}/custom*
-    do
-        mv $file ${WEB_DIR}/${PACKAGE}/
-    done
-
+    # Restore configuration
+    mv ${TMP_DIR}/${PACKAGE}/config.php ${WEB_DIR}/${PACKAGE}/config/
+    cp -r ${TMP_DIR}/${PACKAGE}/upload/*/ ${WEB_DIR}/${PACKAGE}/upload/
     rm -fr ${TMP_DIR}/${PACKAGE}
+
+    # Fix permissions
+    chown -R ${USER} ${WEB_DIR}/${PACKAGE}/upload
+
+    # Run update scripts
+    php ${WEB_DIR}/${PACKAGE}/public/upgrade/console.php ${INSTALLED_VERSION} ${VERSION} > /dev/null
+    php ${WEB_DIR}/${PACKAGE}/public/install/plugin-console.php update_all > /dev/null
 
     exit 0
 }

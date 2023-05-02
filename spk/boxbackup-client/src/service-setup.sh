@@ -10,12 +10,12 @@ SSS="/var/packages/${PACKAGE}/scripts/start-stop-status"
 TMP_DIR="${SYNOPKG_PKGDEST}/../../@tmp"
 
 
-preinst ()
+service_preinst ()
 {
     exit 0
 }
 
-postinst ()
+service_postinst ()
 {
     # Link
     ln -s ${SYNOPKG_PKGDEST} ${INSTALL_DIR}
@@ -26,7 +26,7 @@ postinst ()
     exit 0
 }
 
-preuninst ()
+service_preuninst ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -34,7 +34,7 @@ preuninst ()
     exit 0
 }
 
-postuninst ()
+service_postuninst ()
 {
     # Remove link
     rm -f ${INSTALL_DIR}
@@ -42,7 +42,7 @@ postuninst ()
     exit 0
 }
 
-preupgrade ()
+service_preupgrade ()
 {
     # Stop the package
     ${SSS} stop > /dev/null
@@ -55,7 +55,7 @@ preupgrade ()
     exit 0
 }
 
-postupgrade ()
+service_postupgrade ()
 {
     # Restore some stuff
     rm -fr ${INSTALL_DIR}/var
